@@ -9,6 +9,7 @@ from .views import (
     LessonDestroyAPIView,
 )
 
+
 router = DefaultRouter()
 router.register('courses', CourseViewSet)
 

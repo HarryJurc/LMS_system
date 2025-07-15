@@ -20,7 +20,13 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Course.objects.none()
+
         user = self.request.user
+        if not user or user.is_anonymous:
+            return Course.objects.none()
+
         if user.groups.filter(name='Модераторы').exists():
             return Course.objects.all()
         return Course.objects.filter(owner=user)
@@ -33,7 +39,13 @@ class LessonListAPIView(generics.ListAPIView):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Lesson.objects.none()
+
         user = self.request.user
+        if not user or user.is_anonymous:
+            return Lesson.objects.none()
+
         if user.groups.filter(name='Модераторы').exists():
             return Lesson.objects.all()
         return Lesson.objects.filter(owner=user)

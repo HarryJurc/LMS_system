@@ -10,13 +10,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from materials.models import Course, Lesson
+from materials.models import Course, Lesson, Subscription
 from materials.serializers import CourseSerializer, LessonSerializer
 from .models import Payment
 from .permissions import IsModeratorOrReadOnly
 from .serializers import UserSerializer, PaymentSerializer, RegisterSerializer, UserPublicSerializer
 from .filters import PaymentFilter
 from .services import create_stripe_product, create_stripe_price, create_checkout_session, retrieve_checkout_session
+from .tasks import send_course_update_email
+
 
 User = get_user_model()
 
@@ -59,6 +61,14 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsModeratorOrReadOnly]
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        subscribers = Subscription.objects.filter(course=instance).select_related('user')
+
+        for sub in subscribers:
+            send_course_update_email.delay(instance.title, sub.user.email)
 
 
 class LessonViewSet(viewsets.ModelViewSet):
